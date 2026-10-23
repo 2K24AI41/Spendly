@@ -90,11 +90,12 @@
     </div>
 </section>
 
-<div class="video-modal" id="video-modal" role="dialog" aria-modal="true" aria-label="How Spendly works" data-video="https://www.youtube-nocookie.com/embed/jNQXAC9IVRw" hidden>
+<div class="video-modal" id="video-modal" role="dialog" aria-modal="true" aria-label="How Spendly works" data-video="" hidden>
     <div class="video-modal-box">
         <button type="button" class="video-modal-close" id="video-close" aria-label="Close video">&times;</button>
         <div class="video-modal-frame">
-            <iframe id="video-frame" title="How Spendly works" src="" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+            <p class="video-modal-empty" id="video-empty">Video coming soon.</p>
+            <iframe id="video-frame" title="How Spendly works" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen hidden></iframe>
         </div>
     </div>
 </div>
@@ -106,12 +107,22 @@
 (function () {
     var modal = document.getElementById('video-modal');
     var frame = document.getElementById('video-frame');
+    var empty = document.getElementById('video-empty');
     var openBtn = document.getElementById('video-open');
     var closeBtn = document.getElementById('video-close');
 
+    // Accepts a YouTube watch, youtu.be or embed link; returns '' if none is set.
+    function embedUrl(url) {
+        var m = url.trim().match(/(?:youtu\.be\/|v=|\/embed\/)([\w-]{11})/);
+        return m ? 'https://www.youtube-nocookie.com/embed/' + m[1] + '?autoplay=1&rel=0' : '';
+    }
+
     function openModal(e) {
         e.preventDefault();
-        frame.src = modal.dataset.video + '?autoplay=1&rel=0';
+        var src = embedUrl(modal.dataset.video);
+        frame.hidden = !src;
+        empty.hidden = !!src;
+        if (src) frame.src = src;
         modal.hidden = false;
         document.body.style.overflow = 'hidden';
         closeBtn.focus();
@@ -119,7 +130,7 @@
 
     function closeModal() {
         modal.hidden = true;
-        frame.src = '';
+        frame.removeAttribute('src');
         document.body.style.overflow = '';
         openBtn.focus();
     }

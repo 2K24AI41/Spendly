@@ -240,6 +240,19 @@
     overflow: hidden;
 }
 
+.video-modal-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-faint);
+    font-size: 1rem;
+}
+
+.video-modal-empty[hidden],
+.video-modal-frame iframe[hidden] { display: none; }
+
 .video-modal-frame iframe {
     position: absolute;
     inset: 0;
