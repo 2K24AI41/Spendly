@@ -49,6 +49,7 @@ spendly/
 - **Vanilla JS only** — no React, no jQuery, no npm packages
 - **No new pip packages** — work within `requirements.txt` as-is unless explicitly told otherwise
 - Python 3.10+ assumed — f-strings and `match` statements are fine
+- **Currency is INR (₹), not USD** — use `₹` in templates, seed data, and examples; never `$`
 
 ---
 
