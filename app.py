@@ -1,10 +1,20 @@
 import os
 import sqlite3
+from datetime import datetime
 
 from flask import Flask, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
-from database.db import create_user, get_user_by_email, init_db, seed_db
+from database.db import (
+    create_user,
+    get_category_totals,
+    get_expense_summary,
+    get_recent_expenses,
+    get_user_by_email,
+    get_user_by_id,
+    init_db,
+    seed_db,
+)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
@@ -34,6 +44,21 @@ def validate_registration(name, email, password, confirm_password):
         return "Passwords do not match."
 
     return None
+
+
+@app.template_filter("inr")
+def format_inr(amount):
+    return f"₹{amount:,.2f}"
+
+
+@app.template_filter("month_year")
+def format_month_year(timestamp):
+    return datetime.strptime(timestamp[:10], "%Y-%m-%d").strftime("%B %Y")
+
+
+@app.template_filter("short_date")
+def format_short_date(value):
+    return datetime.strptime(value, "%Y-%m-%d").strftime("%d %b %Y")
 
 
 def authenticate(email, password):
@@ -119,13 +144,29 @@ def privacy():
     return render_template("privacy.html")
 
 
+@app.route("/profile")
+def profile():
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("login"))
+
+    user = get_user_by_id(user_id)
+    if not user:
+        session.clear()
+        return redirect(url_for("login"))
+
+    return render_template(
+        "profile.html",
+        user=user,
+        summary=get_expense_summary(user_id),
+        category_totals=get_category_totals(user_id),
+        recent_expenses=get_recent_expenses(user_id),
+    )
+
+
 # ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
-
-@app.route("/profile")
-def profile():
-    return "Profile page — coming in Step 4"
 
 
 @app.route("/expenses/add")

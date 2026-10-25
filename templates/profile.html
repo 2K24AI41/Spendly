@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.name }} — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="profile">
+    <div class="profile-inner">
+
+        <div class="profile-card profile-header">
+            <div class="profile-avatar" aria-hidden="true">{{ user.name[:1] | upper }}</div>
+            <div class="profile-identity">
+                <h1 class="profile-name">{{ user.name }}</h1>
+                <p class="profile-email">{{ user.email }}</p>
+                {% if user.created_at %}
+                <p class="profile-since">Member since {{ user.created_at | month_year }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="profile-stats">
+            <div class="profile-card stat-tile">
+                <span class="stat-label">Total spent</span>
+                <span class="stat-value">{{ summary.total | inr }}</span>
+            </div>
+            <div class="profile-card stat-tile">
+                <span class="stat-label">Expenses</span>
+                <span class="stat-value">{{ summary.count }}</span>
+            </div>
+            <div class="profile-card stat-tile">
+                <span class="stat-label">Top category</span>
+                {% if category_totals %}
+                <span class="stat-value">{{ category_totals[0].category }}</span>
+                <span class="stat-note">{{ category_totals[0].total | inr }}</span>
+                {% else %}
+                <span class="stat-value">—</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if summary.count %}
+        <div class="profile-grid">
+            <div class="profile-card">
+                <h2 class="profile-section-title">Spending by category</h2>
+                <ul class="category-list">
+                    {% for row in category_totals %}
+                    <li class="category-row">
+                        <div class="category-meta">
+                            <span class="category-name">{{ row.category }}</span>
+                            <span class="category-total">{{ row.total | inr }}</span>
+                        </div>
+                        <div class="category-track">
+                            <div class="category-bar" style="width: {{ (row.total / summary.total * 100) | round(1) }}%"></div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="profile-card">
+                <h2 class="profile-section-title">Recent expenses</h2>
+                <div class="expense-table-wrap">
+                    <table class="expense-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th class="amount">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in recent_expenses %}
+                            <tr>
+                                <td class="expense-date">{{ expense.date | short_date }}</td>
+                                <td>{{ expense.description or "—" }}</td>
+                                <td><span class="category-badge">{{ expense.category }}</span></td>
+                                <td class="amount">{{ expense.amount | inr }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="profile-card profile-empty">
+            <span class="profile-empty-icon" aria-hidden="true">◈</span>
+            <h2 class="profile-section-title">No expenses yet</h2>
+            <p>Add your first expense to start seeing where your rupees go.</p>
+            <a href="{{ url_for('add_expense') }}" class="btn-primary">Add an expense</a>
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+{% endblock %}
