@@ -99,7 +99,7 @@ pytest -s
 | `GET /login` | Implemented — renders `login.html`; redirects to `/profile` if signed in |
 | `POST /login` | Implemented — verifies credentials, sets session, redirects to `/profile` |
 | `GET /logout` | Implemented — clears session, redirects to `/` |
-| `GET /profile` | Implemented — renders `profile.html` with spending summary; redirects to `/login` if signed out |
+| `GET /profile` | Implemented — renders `profile.html` with spending summary, `?from=&to=` date filter; redirects to `/login` if signed out |
 | `GET /profile/transactions` | Implemented — full expense history with `?from=&to=&category=` filters |
 | `GET /profile/summary` | Implemented — totals, average, highest expense and per-month table with `?from=&to=` |
 | `GET /profile/categories` | Implemented — per-category total, count, share and average with `?from=&to=` |
