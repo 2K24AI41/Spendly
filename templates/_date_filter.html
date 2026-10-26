@@ -1,0 +1,30 @@
+<form method="get" class="profile-card filter-form" action="{{ url_for(request.endpoint) }}">
+    <div class="filter-field">
+        <label for="filter-from">From</label>
+        <input type="date" id="filter-from" name="from" class="form-input"
+               value="{{ date_from or '' }}">
+    </div>
+    <div class="filter-field">
+        <label for="filter-to">To</label>
+        <input type="date" id="filter-to" name="to" class="form-input"
+               value="{{ date_to or '' }}">
+    </div>
+    {% if categories is defined %}
+    <div class="filter-field">
+        <label for="filter-category">Category</label>
+        <select id="filter-category" name="category" class="form-input">
+            <option value="">All categories</option>
+            {% for name in categories %}
+            <option value="{{ name }}" {% if name == selected_category %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+    <div class="filter-actions">
+        <button type="submit" class="btn-primary">Apply</button>
+        <a href="{{ url_for(request.endpoint) }}" class="btn-ghost">Clear</a>
+    </div>
+    {% if error %}
+    <div class="auth-error filter-error">{{ error }}</div>
+    {% endif %}
+</form>

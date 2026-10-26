@@ -153,3 +153,106 @@ def create_user(name, email, password):
         return cursor.lastrowid
     finally:
         conn.close()
+
+
+# ---- Step 05 query helpers ---- #
+
+def _date_clause(date_from, date_to):
+    sql, params = "", []
+    if date_from:
+        sql += " AND date >= ?"
+        params.append(date_from)
+    if date_to:
+        sql += " AND date <= ?"
+        params.append(date_to)
+    return sql, params
+
+
+def get_expenses(user_id, date_from=None, date_to=None, category=None):
+    date_sql, date_params = _date_clause(date_from, date_to)
+    sql = ("SELECT id, amount, category, date, description FROM expenses"
+           " WHERE user_id = ?" + date_sql)
+    params = [user_id, *date_params]
+    if category:
+        sql += " AND category = ?"
+        params.append(category)
+    sql += " ORDER BY date DESC, id DESC"
+
+    conn = get_db()
+    try:
+        return conn.execute(sql, params).fetchall()
+    finally:
+        conn.close()
+
+
+def get_user_categories(user_id):
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT DISTINCT category FROM expenses"
+            " WHERE user_id = ? ORDER BY category ASC",
+            (user_id,),
+        ).fetchall()
+        return [row["category"] for row in rows]
+    finally:
+        conn.close()
+
+
+def get_spending_stats(user_id, date_from=None, date_to=None):
+    date_sql, date_params = _date_clause(date_from, date_to)
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS count,"
+            " COALESCE(AVG(amount), 0) AS average,"
+            " COALESCE(MAX(amount), 0) AS highest"
+            " FROM expenses WHERE user_id = ?" + date_sql,
+            (user_id, *date_params),
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def get_largest_expense(user_id, date_from=None, date_to=None):
+    date_sql, date_params = _date_clause(date_from, date_to)
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT id, amount, category, date, description FROM expenses"
+            " WHERE user_id = ?" + date_sql +
+            " ORDER BY amount DESC, date DESC, id DESC LIMIT 1",
+            (user_id, *date_params),
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def get_monthly_summary(user_id, date_from=None, date_to=None):
+    date_sql, date_params = _date_clause(date_from, date_to)
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT substr(date, 1, 7) AS month, SUM(amount) AS total,"
+            " COUNT(*) AS count, AVG(amount) AS average"
+            " FROM expenses WHERE user_id = ?" + date_sql +
+            " GROUP BY month ORDER BY month DESC",
+            (user_id, *date_params),
+        ).fetchall()
+    finally:
+        conn.close()
+
+
+def get_category_breakdown(user_id, date_from=None, date_to=None):
+    date_sql, date_params = _date_clause(date_from, date_to)
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT category, SUM(amount) AS total, COUNT(*) AS count,"
+            " AVG(amount) AS average,"
+            " SUM(amount) * 100.0 / SUM(SUM(amount)) OVER () AS share"
+            " FROM expenses WHERE user_id = ?" + date_sql +
+            " GROUP BY category ORDER BY total DESC, category ASC",
+            (user_id, *date_params),
+        ).fetchall()
+    finally:
+        conn.close()

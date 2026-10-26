@@ -7,11 +7,17 @@ from werkzeug.security import check_password_hash
 
 from database.db import (
     create_user,
+    get_category_breakdown,
     get_category_totals,
     get_expense_summary,
+    get_expenses,
+    get_largest_expense,
+    get_monthly_summary,
     get_recent_expenses,
+    get_spending_stats,
     get_user_by_email,
     get_user_by_id,
+    get_user_categories,
     init_db,
     seed_db,
 )
@@ -61,11 +67,48 @@ def format_short_date(value):
     return datetime.strptime(value, "%Y-%m-%d").strftime("%d %b %Y")
 
 
+@app.template_filter("month_label")
+def format_month_label(value):
+    return datetime.strptime(value, "%Y-%m").strftime("%B %Y")
+
+
 def authenticate(email, password):
     user = get_user_by_email(email)
     if user and check_password_hash(user["password_hash"], password):
         return user
     return None
+
+
+def get_current_user():
+    user_id = session.get("user_id")
+    if not user_id:
+        return None
+
+    user = get_user_by_id(user_id)
+    if not user:
+        session.clear()
+    return user
+
+
+def parse_date_range(args):
+    error = None
+    dates = []
+    for key in ("from", "to"):
+        value = args.get(key, "").strip()
+        if not value:
+            dates.append(None)
+            continue
+        try:
+            datetime.strptime(value, "%Y-%m-%d")
+            dates.append(value)
+        except ValueError:
+            dates.append(None)
+            error = "Invalid date ignored."
+
+    date_from, date_to = dates
+    if date_from and date_to and date_from > date_to:
+        return None, None, "Start date must be on or before end date."
+    return date_from, date_to, error
 
 
 # ------------------------------------------------------------------ #
@@ -146,15 +189,11 @@ def privacy():
 
 @app.route("/profile")
 def profile():
-    user_id = session.get("user_id")
-    if not user_id:
+    user = get_current_user()
+    if user is None:
         return redirect(url_for("login"))
 
-    user = get_user_by_id(user_id)
-    if not user:
-        session.clear()
-        return redirect(url_for("login"))
-
+    user_id = user["id"]
     return render_template(
         "profile.html",
         user=user,
@@ -162,6 +201,76 @@ def profile():
         category_totals=get_category_totals(user_id),
         recent_expenses=get_recent_expenses(user_id),
     )
+
+
+# >>> Subagent 01: transaction history routes >>>
+@app.route("/profile/transactions")
+def profile_transactions():
+    user = get_current_user()
+    if user is None:
+        return redirect(url_for("login"))
+
+    date_from, date_to, error = parse_date_range(request.args)
+    category = request.args.get("category", "").strip() or None
+    categories = get_user_categories(user["id"])
+    if category and category not in categories:
+        category = None
+        category_error = "Unknown category — showing all categories."
+        error = f"{error} {category_error}" if error else category_error
+
+    return render_template(
+        "transactions.html",
+        user=user,
+        expenses=get_expenses(user["id"], date_from, date_to, category),
+        categories=categories,
+        selected_category=category,
+        date_from=date_from,
+        date_to=date_to,
+        error=error,
+    )
+# <<< end Subagent 01 <<<
+
+
+# >>> Subagent 02: summary stats routes >>>
+@app.route("/profile/summary")
+def profile_summary():
+    user = get_current_user()
+    if user is None:
+        return redirect(url_for("login"))
+
+    date_from, date_to, error = parse_date_range(request.args)
+    user_id = user["id"]
+    return render_template(
+        "summary.html",
+        user=user,
+        stats=get_spending_stats(user_id, date_from, date_to),
+        largest=get_largest_expense(user_id, date_from, date_to),
+        months=get_monthly_summary(user_id, date_from, date_to),
+        date_from=date_from,
+        date_to=date_to,
+        error=error,
+    )
+# <<< end Subagent 02 <<<
+
+
+# >>> Subagent 03: category breakdown routes >>>
+@app.route("/profile/categories")
+def profile_categories():
+    user = get_current_user()
+    if user is None:
+        return redirect(url_for("login"))
+
+    date_from, date_to, error = parse_date_range(request.args)
+    return render_template(
+        "categories.html",
+        user=user,
+        breakdown=get_category_breakdown(user["id"], date_from, date_to),
+        stats=get_spending_stats(user["id"], date_from, date_to),
+        date_from=date_from,
+        date_to=date_to,
+        error=error,
+    )
+# <<< end Subagent 03 <<<
 
 
 # ------------------------------------------------------------------ #
