@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from flask import Flask, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
@@ -23,7 +23,11 @@ from database.db import (
 )
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+app.secret_key = os.environ.get("SECRET_KEY")
+if not app.secret_key:
+    if os.environ.get("FLASK_ENV") == "production":
+        raise RuntimeError("SECRET_KEY must be set in production.")
+    app.secret_key = "dev-secret-change-me"
 
 with app.app_context():
     init_db()
@@ -64,7 +68,10 @@ def format_month_year(timestamp):
 
 @app.template_filter("short_date")
 def format_short_date(value):
-    return datetime.strptime(value, "%Y-%m-%d").strftime("%d %b %Y")
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").strftime("%d %b %Y")
+    except (TypeError, ValueError):
+        return value
 
 
 @app.template_filter("month_label")
@@ -109,6 +116,17 @@ def parse_date_range(args):
     if date_from and date_to and date_from > date_to:
         return None, None, "Start date must be on or before end date."
     return date_from, date_to, error
+
+
+def build_date_presets(today=None):
+    today = today or date.today()
+    end = today.isoformat()
+    return [
+        ("This month", today.replace(day=1).isoformat(), end),
+        ("Last 30 days", (today - timedelta(days=29)).isoformat(), end),
+        ("This year", today.replace(month=1, day=1).isoformat(), end),
+        ("All time", None, None),
+    ]
 
 
 # ------------------------------------------------------------------ #
@@ -193,13 +211,21 @@ def profile():
     if user is None:
         return redirect(url_for("login"))
 
+    date_from, date_to, error = parse_date_range(request.args)
     user_id = user["id"]
     return render_template(
         "profile.html",
         user=user,
-        summary=get_expense_summary(user_id),
-        category_totals=get_category_totals(user_id),
-        recent_expenses=get_recent_expenses(user_id),
+        summary=get_expense_summary(
+            user_id, date_from=date_from, date_to=date_to),
+        category_totals=get_category_totals(
+            user_id, date_from=date_from, date_to=date_to),
+        recent_expenses=get_recent_expenses(
+            user_id, date_from=date_from, date_to=date_to),
+        date_from=date_from,
+        date_to=date_to,
+        error=error,
+        presets=build_date_presets(),
     )
 
 
@@ -294,4 +320,4 @@ def delete_expense(id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    app.run(debug=os.environ.get("FLASK_DEBUG", "1") == "1", port=5001)

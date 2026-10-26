@@ -1,3 +1,9 @@
+{#
+    Expects from the including page: date_from, date_to, error.
+    Optional: categories + selected_category (adds the category select),
+    presets (adds quick-pick range links, see build_date_presets in app.py).
+    The form action and Clear link use request.endpoint.
+#}
 <form method="get" class="profile-card filter-form" action="{{ url_for(request.endpoint) }}">
     <div class="filter-field">
         <label for="filter-from">From</label>
@@ -24,6 +30,14 @@
         <button type="submit" class="btn-primary">Apply</button>
         <a href="{{ url_for(request.endpoint) }}" class="btn-ghost">Clear</a>
     </div>
+    {% if presets is defined %}
+    <div class="filter-presets">
+        {% for label, preset_from, preset_to in presets %}
+        <a href="{{ url_for(request.endpoint, **{'from': preset_from, 'to': preset_to}) }}"
+           class="filter-preset{% if preset_from == date_from and preset_to == date_to %} active{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
     {% if error %}
     <div class="auth-error filter-error">{{ error }}</div>
     {% endif %}

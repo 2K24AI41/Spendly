@@ -106,37 +106,53 @@ def get_user_by_id(user_id):
         conn.close()
 
 
-def get_expense_summary(user_id):
+def _date_clause(date_from, date_to):
+    sql, params = "", []
+    if date_from:
+        sql += " AND date >= ?"
+        params.append(date_from)
+    if date_to:
+        sql += " AND date <= ?"
+        params.append(date_to)
+    return sql, params
+
+
+def get_expense_summary(user_id, *, date_from=None, date_to=None):
+    date_sql, date_params = _date_clause(date_from, date_to)
     conn = get_db()
     try:
         return conn.execute(
             "SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS count"
-            " FROM expenses WHERE user_id = ?",
-            (user_id,),
+            " FROM expenses WHERE user_id = ?" + date_sql,
+            (user_id, *date_params),
         ).fetchone()
     finally:
         conn.close()
 
 
-def get_category_totals(user_id):
+def get_category_totals(user_id, *, date_from=None, date_to=None):
+    date_sql, date_params = _date_clause(date_from, date_to)
     conn = get_db()
     try:
         return conn.execute(
             "SELECT category, SUM(amount) AS total FROM expenses"
-            " WHERE user_id = ? GROUP BY category ORDER BY total DESC",
-            (user_id,),
+            " WHERE user_id = ?" + date_sql +
+            " GROUP BY category ORDER BY total DESC",
+            (user_id, *date_params),
         ).fetchall()
     finally:
         conn.close()
 
 
-def get_recent_expenses(user_id, limit=5):
+def get_recent_expenses(user_id, limit=5, *, date_from=None, date_to=None):
+    date_sql, date_params = _date_clause(date_from, date_to)
     conn = get_db()
     try:
         return conn.execute(
             "SELECT id, amount, category, date, description FROM expenses"
-            " WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT ?",
-            (user_id, limit),
+            " WHERE user_id = ?" + date_sql +
+            " ORDER BY date DESC, id DESC LIMIT ?",
+            (user_id, *date_params, limit),
         ).fetchall()
     finally:
         conn.close()
@@ -155,18 +171,7 @@ def create_user(name, email, password):
         conn.close()
 
 
-# ---- Step 05 query helpers ---- #
-
-def _date_clause(date_from, date_to):
-    sql, params = "", []
-    if date_from:
-        sql += " AND date >= ?"
-        params.append(date_from)
-    if date_to:
-        sql += " AND date <= ?"
-        params.append(date_to)
-    return sql, params
-
+# ---- Filtered query helpers (transactions, summary, categories) ---- #
 
 def get_expenses(user_id, date_from=None, date_to=None, category=None):
     date_sql, date_params = _date_clause(date_from, date_to)

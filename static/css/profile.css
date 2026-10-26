@@ -375,3 +375,37 @@
 .profile-section-link:hover {
     text-decoration: underline;
 }
+
+/* Date filter presets and active range */
+.filter-presets {
+    flex-basis: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.filter-preset {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    font-size: 0.8125rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+}
+
+.filter-preset:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.filter-preset.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--paper);
+}
+
+.profile-range {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--ink-muted);
+}

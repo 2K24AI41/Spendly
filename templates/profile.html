@@ -23,6 +23,19 @@
             </div>
         </div>
 
+        {% set filtered = date_from or date_to %}
+        {% set range_args = {'from': date_from, 'to': date_to} %}
+        {% include "_date_filter.html" %}
+
+        {% if filtered %}
+        <p class="profile-range">
+            Showing
+            {% if date_from and date_to %}{{ date_from | short_date }} to {{ date_to | short_date }}
+            {% elif date_from %}from {{ date_from | short_date }}
+            {% else %}up to {{ date_to | short_date }}{% endif %}
+        </p>
+        {% endif %}
+
         <div class="profile-stats">
             <div class="profile-card stat-tile">
                 <span class="stat-label">Total spent</span>
@@ -42,7 +55,7 @@
                 {% endif %}
             </div>
         </div>
-        <a href="{{ url_for('profile_summary') }}" class="profile-section-link">View summary →</a>
+        <a href="{{ url_for('profile_summary', **range_args) }}" class="profile-section-link">View summary →</a>
 
         {% if summary.count %}
         <div class="profile-grid">
@@ -61,7 +74,7 @@
                     </li>
                     {% endfor %}
                 </ul>
-                <a href="{{ url_for('profile_categories') }}" class="profile-section-link">Full breakdown →</a>
+                <a href="{{ url_for('profile_categories', **range_args) }}" class="profile-section-link">Full breakdown →</a>
             </div>
 
             <div class="profile-card">
@@ -88,15 +101,20 @@
                         </tbody>
                     </table>
                 </div>
-                <a href="{{ url_for('profile_transactions') }}" class="profile-section-link">View all transactions →</a>
+                <a href="{{ url_for('profile_transactions', **range_args) }}" class="profile-section-link">View all transactions →</a>
             </div>
         </div>
         {% else %}
         <div class="profile-card profile-empty">
             <span class="profile-empty-icon" aria-hidden="true">◈</span>
+            {% if filtered %}
+            <h2 class="profile-section-title">No expenses in this range</h2>
+            <p>Try a different date range or clear the filter.</p>
+            {% else %}
             <h2 class="profile-section-title">No expenses yet</h2>
             <p>Add your first expense to start seeing where your rupees go.</p>
             <a href="{{ url_for('add_expense') }}" class="btn-primary">Add an expense</a>
+            {% endif %}
         </div>
         {% endif %}
 
