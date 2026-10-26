@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Categories — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/categories.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="profile">
+    <div class="profile-inner">
+
+        {% include "_profile_nav.html" %}
+
+        <h1 class="profile-name">Categories</h1>
+
+        {% include "_date_filter.html" %}
+
+        {% if breakdown %}
+        <div class="profile-card">
+            <h2 class="profile-section-title">Spending by category</h2>
+            <div class="expense-table-wrap">
+                <table class="expense-table category-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th class="amount">Expenses</th>
+                            <th class="amount">Total</th>
+                            <th class="share-col">Share</th>
+                            <th class="amount">Average</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in breakdown %}
+                        <tr>
+                            <td><span class="category-badge">{{ row.category }}</span></td>
+                            <td class="amount">{{ row.count }}</td>
+                            <td class="amount">{{ row.total | inr }}</td>
+                            <td class="share-col">
+                                <div class="share-cell">
+                                    <span class="share-value">{{ row.share | round(1) }}%</span>
+                                    <div class="category-track share-track">
+                                        <div class="category-bar" style="width: {{ row.share | round(1) }}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="amount">{{ row.average | inr }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td>Total</td>
+                            <td class="amount">{{ stats.count }}</td>
+                            <td class="amount">{{ stats.total | inr }}</td>
+                            <td class="share-col"></td>
+                            <td class="amount"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="profile-card profile-empty">
+            <span class="profile-empty-icon" aria-hidden="true">◈</span>
+            <h2 class="profile-section-title">No expenses in this period</h2>
+            <p>Try a different date range, or clear the filter.</p>
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+{% endblock %}

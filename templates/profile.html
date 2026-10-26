@@ -10,6 +10,8 @@
 <section class="profile">
     <div class="profile-inner">
 
+        {% include "_profile_nav.html" %}
+
         <div class="profile-card profile-header">
             <div class="profile-avatar" aria-hidden="true">{{ user.name[:1] | upper }}</div>
             <div class="profile-identity">
@@ -40,6 +42,7 @@
                 {% endif %}
             </div>
         </div>
+        <a href="{{ url_for('profile_summary') }}" class="profile-section-link">View summary →</a>
 
         {% if summary.count %}
         <div class="profile-grid">
@@ -58,6 +61,7 @@
                     </li>
                     {% endfor %}
                 </ul>
+                <a href="{{ url_for('profile_categories') }}" class="profile-section-link">Full breakdown →</a>
             </div>
 
             <div class="profile-card">
@@ -84,6 +88,7 @@
                         </tbody>
                     </table>
                 </div>
+                <a href="{{ url_for('profile_transactions') }}" class="profile-section-link">View all transactions →</a>
             </div>
         </div>
         {% else %}

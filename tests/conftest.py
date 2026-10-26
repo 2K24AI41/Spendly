@@ -30,3 +30,30 @@ def fetch_users(email=None):
         ).fetchall()
     finally:
         conn.close()
+
+
+def login(client, email="demo@spendly.com", password="demo123"):
+    return client.post("/login", data={"email": email, "password": password})
+
+
+def register_user(client, name="New User", email="new@example.com",
+                  password="password123"):
+    return client.post("/register", data={
+        "name": name,
+        "email": email,
+        "password": password,
+        "confirm_password": password,
+    })
+
+
+def add_expense_row(user_id, amount, category, date, description):
+    conn = db.get_db()
+    try:
+        conn.execute(
+            "INSERT INTO expenses (user_id, amount, category, date, description)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (user_id, amount, category, date, description),
+        )
+        conn.commit()
+    finally:
+        conn.close()

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/transactions.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="profile">
+    <div class="profile-inner">
+
+        {% include "_profile_nav.html" %}
+
+        <h1 class="transactions-title">Transactions</h1>
+
+        {% include "_date_filter.html" %}
+
+        {% if expenses %}
+        <div class="profile-card">
+            <p class="transactions-count">
+                {{ expenses | length }} transaction{{ "" if expenses | length == 1 else "s" }}
+            </p>
+            <div class="expense-table-wrap">
+                <table class="expense-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th class="amount">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr>
+                            <td class="expense-date">{{ expense.date | short_date }}</td>
+                            <td>{{ expense.description or "—" }}</td>
+                            <td><span class="category-badge">{{ expense.category }}</span></td>
+                            <td class="amount">{{ expense.amount | inr }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="profile-card profile-empty">
+            <span class="profile-empty-icon" aria-hidden="true">◈</span>
+            <h2 class="profile-section-title">No transactions match these filters.</h2>
+            <p class="transactions-count">0 transactions</p>
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+{% endblock %}

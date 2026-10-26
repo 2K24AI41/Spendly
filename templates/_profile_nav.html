@@ -1,0 +1,10 @@
+<nav class="profile-subnav" aria-label="Profile sections">
+    {% for endpoint, label in [
+        ('profile', 'Profile'),
+        ('profile_transactions', 'Transactions'),
+        ('profile_summary', 'Summary'),
+        ('profile_categories', 'Categories'),
+    ] %}
+    <a href="{{ url_for(endpoint) }}"{% if request.endpoint == endpoint %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
+    {% endfor %}
+</nav>

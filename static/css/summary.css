@@ -1,0 +1,34 @@
+/* ------------------------------------------------------------------ */
+/* Summary stats page                                                  */
+/* ------------------------------------------------------------------ */
+
+.summary-stats {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.summary-stats .stat-value {
+    font-size: 1.6rem;
+}
+
+.summary-month {
+    color: var(--ink);
+    white-space: nowrap;
+}
+
+/* Responsive */
+
+@media (max-width: 900px) {
+    .summary-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 720px) {
+    .summary-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .summary-title {
+        font-size: 1.6rem;
+    }
+}

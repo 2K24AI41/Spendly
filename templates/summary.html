@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Summary — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/summary.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="profile">
+    <div class="profile-inner">
+
+        {% include "_profile_nav.html" %}
+
+        <h1 class="profile-name summary-title">Summary</h1>
+
+        {% include "_date_filter.html" %}
+
+        <div class="profile-stats summary-stats">
+            <div class="profile-card stat-tile">
+                <span class="stat-label">Total spent</span>
+                <span class="stat-value">{{ stats.total | inr }}</span>
+            </div>
+            <div class="profile-card stat-tile">
+                <span class="stat-label">Expenses</span>
+                <span class="stat-value">{{ stats.count }}</span>
+            </div>
+            <div class="profile-card stat-tile">
+                <span class="stat-label">Average per expense</span>
+                <span class="stat-value">{{ stats.average | inr }}</span>
+            </div>
+            <div class="profile-card stat-tile">
+                <span class="stat-label">Highest expense</span>
+                <span class="stat-value">{{ stats.highest | inr }}</span>
+                {% if largest %}
+                <span class="stat-note">{{ largest.description or "—" }} · {{ largest.date | short_date }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if stats.count == 0 %}
+        <div class="profile-card profile-empty">
+            <span class="profile-empty-icon" aria-hidden="true">◈</span>
+            <h2 class="profile-section-title">No expenses in this period</h2>
+            <p>Try a wider date range, or clear the filter to see everything.</p>
+            <a href="{{ url_for('profile_summary') }}" class="btn-ghost">Clear filter</a>
+        </div>
+        {% else %}
+        <div class="profile-card">
+            <h2 class="profile-section-title">By month</h2>
+            <div class="expense-table-wrap">
+                <table class="expense-table summary-table">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th class="amount">Expenses</th>
+                            <th class="amount">Total</th>
+                            <th class="amount">Average</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in months %}
+                        <tr>
+                            <td class="summary-month">{{ row.month | month_label }}</td>
+                            <td class="amount">{{ row.count }}</td>
+                            <td class="amount">{{ row.total | inr }}</td>
+                            <td class="amount">{{ row.average | inr }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+{% endblock %}
