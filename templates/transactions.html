@@ -46,6 +46,8 @@
                             <td class="actions">
                                 <a href="{{ url_for('edit_expense', expense_id=expense.id) }}" class="expense-edit-link"
                                    aria-label="Edit {{ expense.description or expense.category }} expense of {{ expense.amount | inr }} on {{ expense.date | short_date }}">Edit</a>
+                                <a href="{{ url_for('delete_expense', expense_id=expense.id) }}" class="expense-delete-link"
+                                   aria-label="Delete {{ expense.description or expense.category }} expense of {{ expense.amount | inr }} on {{ expense.date | short_date }}">Delete</a>
                             </td>
                         </tr>
                         {% endfor %}

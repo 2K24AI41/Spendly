@@ -14,6 +14,7 @@ from database.db import (
     EXPENSE_CATEGORIES,
     create_expense,
     create_user,
+    delete_expense as remove_expense,
     get_category_breakdown,
     get_category_totals,
     get_expense,
@@ -456,13 +457,29 @@ def edit_expense(expense_id):
     )
 
 
-# ------------------------------------------------------------------ #
-# Placeholder routes — students will implement these                  #
-# ------------------------------------------------------------------ #
+@app.route("/expenses/<int:expense_id>/delete", methods=["GET", "POST"])
+def delete_expense(expense_id):
+    user = get_current_user()
+    if user is None:
+        return redirect(url_for("login"))
 
-@app.route("/expenses/<int:id>/delete")
-def delete_expense(id):
-    return "Delete expense — coming in Step 9"
+    expense = get_expense(expense_id, user["id"])
+    if expense is None:
+        abort(404)
+
+    if request.method == "POST":
+        if not csrf_token_is_valid():
+            abort(400)
+        # No row matched only if it was deleted since the lookup above.
+        if not remove_expense(expense_id, user["id"]):
+            abort(404)
+        return redirect(url_for("profile_transactions"))
+
+    return render_template(
+        "delete_expense.html",
+        expense=expense,
+        expense_id=expense_id,
+    )
 
 
 if __name__ == "__main__":

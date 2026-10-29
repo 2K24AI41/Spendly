@@ -244,6 +244,18 @@
     text-decoration: underline;
 }
 
+.expense-delete-link {
+    margin-left: 0.75rem;
+    color: var(--danger);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.expense-delete-link:hover {
+    text-decoration: underline;
+}
+
 .expense-date {
     white-space: nowrap;
     color: var(--ink-muted);

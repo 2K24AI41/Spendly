@@ -107,9 +107,10 @@ pytest -s
 | `POST /expenses/add` | Implemented — validates, creates the expense, redirects to `/profile/transactions` |
 | `GET /expenses/<id>/edit` | Implemented — renders `edit_expense.html` pre-filled; 404 if missing or not owned; redirects to `/login` if signed out |
 | `POST /expenses/<id>/edit` | Implemented — validates, updates the expense, redirects to `/profile/transactions` |
-| `GET /expenses/<id>/delete` | Stub — Step 9 |
+| `GET /expenses/<id>/delete` | Implemented — renders `delete_expense.html` confirmation page (no deletion); 404 if missing or not owned; redirects to `/login` if signed out |
+| `POST /expenses/<id>/delete` | Implemented — verifies CSRF, deletes the expense, redirects to `/profile/transactions` |
 
-**Do not implement a stub route unless the active task explicitly targets that step.**
+No stub routes remain. **Do not implement a new route unless the active task explicitly targets it.**
 
 ---
 
