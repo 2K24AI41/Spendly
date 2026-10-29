@@ -16,6 +16,7 @@ from database.db import (
     create_user,
     get_category_breakdown,
     get_category_totals,
+    get_expense,
     get_expense_summary,
     get_expenses,
     get_largest_expense,
@@ -27,6 +28,7 @@ from database.db import (
     get_user_categories,
     init_db,
     seed_db,
+    update_expense,
 )
 
 app = Flask(__name__)
@@ -42,6 +44,7 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
 MAX_AMOUNT = 10_000_000
 MAX_AMOUNT_INPUT_LENGTH = 20
 MAX_DESCRIPTION_LENGTH = 200
+EXPENSE_FIELDS = ("amount", "category", "date", "description")
 
 with app.app_context():
     init_db()
@@ -104,6 +107,20 @@ def validate_expense(amount, category, expense_date, description):
         "expense_date": parsed_date.isoformat(),
         "description": description or None,
     }, None
+
+
+def read_expense_form(source):
+    return {key: source.get(key, "").strip() for key in EXPENSE_FIELDS}
+
+
+def expense_to_form(expense):
+    return {
+        # <input type="number"> needs a plain decimal string, e.g. "250.00".
+        "amount": f"{float(expense['amount']):.2f}",
+        "category": expense["category"],
+        "date": expense["date"],
+        "description": expense["description"] or "",
+    }
 
 
 def get_csrf_token():
@@ -388,10 +405,7 @@ def add_expense():
     if request.method == "POST":
         if not csrf_token_is_valid():
             abort(400)
-        form = {
-            key: request.form.get(key, "").strip()
-            for key in ("amount", "category", "date", "description")
-        }
+        form = read_expense_form(request.form)
         cleaned, error = validate_expense(
             form["amount"], form["category"], form["date"],
             form["description"])
@@ -407,15 +421,44 @@ def add_expense():
     )
 
 
+@app.route("/expenses/<int:expense_id>/edit", methods=["GET", "POST"])
+def edit_expense(expense_id):
+    user = get_current_user()
+    if user is None:
+        return redirect(url_for("login"))
+
+    expense = get_expense(expense_id, user["id"])
+    if expense is None:
+        abort(404)
+
+    error = None
+    if request.method == "POST":
+        if not csrf_token_is_valid():
+            abort(400)
+        form = read_expense_form(request.form)
+        cleaned, error = validate_expense(
+            form["amount"], form["category"], form["date"],
+            form["description"])
+        if error is None:
+            # No row matched only if it was deleted since the lookup above.
+            if not update_expense(expense_id, user["id"], **cleaned):
+                abort(404)
+            return redirect(url_for("profile_transactions"))
+    else:
+        form = expense_to_form(expense)
+
+    return render_template(
+        "edit_expense.html",
+        categories=EXPENSE_CATEGORIES,
+        form=form,
+        error=error,
+        expense_id=expense_id,
+    )
+
+
 # ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
-
-
-@app.route("/expenses/<int:id>/edit")
-def edit_expense(id):
-    return "Edit expense — coming in Step 8"
-
 
 @app.route("/expenses/<int:id>/delete")
 def delete_expense(id):

@@ -228,6 +228,22 @@
     font-weight: 500;
 }
 
+.expense-table .actions {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.expense-edit-link {
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.expense-edit-link:hover {
+    text-decoration: underline;
+}
+
 .expense-date {
     white-space: nowrap;
     color: var(--ink-muted);
