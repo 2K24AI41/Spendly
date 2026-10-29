@@ -1,0 +1,25 @@
+.amount-field {
+    position: relative;
+}
+
+.amount-prefix {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--ink-muted);
+    pointer-events: none;
+}
+
+.amount-input {
+    padding-left: 2.25rem;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+}
+
+.optional {
+    font-weight: 400;
+    color: var(--ink-faint);
+}

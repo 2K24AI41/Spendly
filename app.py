@@ -1,11 +1,14 @@
 import os
 import sqlite3
 from datetime import date, datetime, timedelta
+from decimal import Decimal, InvalidOperation
 
 from flask import Flask, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
 from database.db import (
+    EXPENSE_CATEGORIES,
+    create_expense,
     create_user,
     get_category_breakdown,
     get_category_totals,
@@ -54,6 +57,38 @@ def validate_registration(name, email, password, confirm_password):
         return "Passwords do not match."
 
     return None
+
+
+def validate_expense(amount, category, expense_date, description):
+    try:
+        parsed_amount = Decimal(amount)
+    except InvalidOperation:
+        return None, "Please enter a valid amount."
+
+    if not parsed_amount.is_finite() or parsed_amount <= 0:
+        return None, "Amount must be greater than zero."
+    if parsed_amount.as_tuple().exponent < -2:
+        return None, "Amount can have at most 2 decimal places."
+    if parsed_amount > 10_000_000:
+        return None, "Amount must not exceed ₹1,00,00,000."
+
+    if category not in EXPENSE_CATEGORIES:
+        return None, "Please choose a category."
+
+    try:
+        datetime.strptime(expense_date, "%Y-%m-%d")
+    except ValueError:
+        return None, "Please enter a valid date."
+
+    if len(description) > 200:
+        return None, "Description must be 200 characters or fewer."
+
+    return {
+        "amount": float(parsed_amount),
+        "category": category,
+        "date": expense_date,
+        "description": description or None,
+    }, None
 
 
 @app.template_filter("inr")
@@ -307,14 +342,42 @@ def analytics():
     return render_template("analytics.html", user=user)
 
 
+@app.route("/expenses/add", methods=["GET", "POST"])
+def add_expense():
+    user = get_current_user()
+    if user is None:
+        return redirect(url_for("login"))
+
+    if request.method == "GET":
+        return render_template(
+            "add_expense.html",
+            categories=EXPENSE_CATEGORIES,
+            form={"date": date.today().isoformat()},
+        )
+
+    form = {
+        "amount": request.form.get("amount", "").strip(),
+        "category": request.form.get("category", "").strip(),
+        "date": request.form.get("date", "").strip(),
+        "description": request.form.get("description", "").strip(),
+    }
+    cleaned, error = validate_expense(
+        form["amount"], form["category"], form["date"], form["description"])
+    if error:
+        return render_template(
+            "add_expense.html",
+            categories=EXPENSE_CATEGORIES,
+            form=form,
+            error=error,
+        )
+
+    create_expense(user["id"], **cleaned)
+    return redirect(url_for("profile_transactions"))
+
+
 # ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
-
-
-@app.route("/expenses/add")
-def add_expense():
-    return "Add expense — coming in Step 7"
 
 
 @app.route("/expenses/<int:id>/edit")
