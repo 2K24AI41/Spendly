@@ -2,6 +2,7 @@ import re
 from datetime import date
 
 import pytest
+from flask.testing import FlaskClient
 
 import database.db as db
 from tests.conftest import fetch_users, login, register_user
@@ -11,6 +12,29 @@ CATEGORIES = [
     "Entertainment", "Shopping", "Other",
 ]
 URL = "/expenses/add"
+TOKEN_RE = re.compile(r'name="csrf_token" value="([0-9a-f]+)"')
+
+
+class CsrfClient(FlaskClient):
+    """Test client that adds a valid CSRF token to POSTs to the add form."""
+
+    auto_csrf = True
+
+    def post(self, *args, **kwargs):
+        data = kwargs.get("data")
+        if (self.auto_csrf and args and args[0] == URL
+                and isinstance(data, dict) and "csrf_token" not in data):
+            page = self.get(URL).get_data(as_text=True)
+            match = TOKEN_RE.search(page)
+            if match:
+                kwargs["data"] = {**data, "csrf_token": match.group(1)}
+        return super().post(*args, **kwargs)
+
+
+@pytest.fixture
+def client(app, monkeypatch):
+    monkeypatch.setattr(app, "test_client_class", CsrfClient)
+    return app.test_client()
 
 
 def valid_form(**overrides):
@@ -376,3 +400,71 @@ def test_profile_empty_state_has_add_expense_link(client):
     login(client, email="empty@example.com", password="password123")
     html = client.get("/profile").get_data(as_text=True)
     assert f'href="{URL}"' in html
+
+
+# ---- Review follow-ups: CSRF, date normalisation, input size ---- #
+
+def test_form_contains_csrf_token(client):
+    login(client)
+    html = client.get(URL).get_data(as_text=True)
+    assert TOKEN_RE.search(html)
+
+
+def test_post_without_csrf_token_is_rejected(client):
+    login(client)
+    client.auto_csrf = False
+    before = count_expenses()
+    resp = client.post(URL, data=valid_form())
+    assert resp.status_code == 400
+    assert count_expenses() == before
+
+
+def test_post_with_wrong_csrf_token_is_rejected(client):
+    login(client)
+    client.get(URL)
+    client.auto_csrf = False
+    before = count_expenses()
+    resp = client.post(URL, data=valid_form(csrf_token="0" * 32))
+    assert resp.status_code == 400
+    assert count_expenses() == before
+
+
+def test_post_with_non_ascii_csrf_token_is_rejected(client):
+    login(client)
+    client.get(URL)
+    client.auto_csrf = False
+    resp = client.post(URL, data=valid_form(csrf_token="é" * 8))
+    assert resp.status_code == 400
+
+
+def test_signed_out_post_redirects_before_csrf_check(client):
+    client.auto_csrf = False
+    resp = client.post(URL, data=valid_form())
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/login")
+
+
+def test_non_padded_date_is_stored_normalised(client):
+    login(client)
+    resp = client.post(URL, data=valid_form(
+        date="2026-1-5", description="Normalised date marker"))
+    assert resp.status_code == 302
+    row = fetch_by_description("Normalised date marker")[0]
+    assert row["date"] == "2026-01-05"
+
+
+def test_overlong_amount_string_is_rejected(client):
+    assert_rejected(login_and(client), amount="1" * 21)
+
+
+def test_oversized_request_body_is_rejected(client):
+    login(client)
+    before = count_expenses()
+    resp = client.post(URL, data=valid_form(description="x" * 20000))
+    assert resp.status_code == 413
+    assert count_expenses() == before
+
+
+def login_and(client):
+    login(client)
+    return client

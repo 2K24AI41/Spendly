@@ -1,9 +1,13 @@
+import hmac
 import os
+import secrets
 import sqlite3
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
-from flask import Flask, redirect, render_template, request, session, url_for
+from flask import (
+    Flask, abort, redirect, render_template, request, session, url_for,
+)
 from werkzeug.security import check_password_hash
 
 from database.db import (
@@ -31,6 +35,13 @@ if not app.secret_key:
     if os.environ.get("FLASK_ENV") == "production":
         raise RuntimeError("SECRET_KEY must be set in production.")
     app.secret_key = "dev-secret-change-me"
+
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
+
+MAX_AMOUNT = 10_000_000
+MAX_AMOUNT_INPUT_LENGTH = 20
+MAX_DESCRIPTION_LENGTH = 200
 
 with app.app_context():
     init_db()
@@ -60,6 +71,9 @@ def validate_registration(name, email, password, confirm_password):
 
 
 def validate_expense(amount, category, expense_date, description):
+    """Return (cleaned_fields, None) on success or (None, error_message)."""
+    if len(amount) > MAX_AMOUNT_INPUT_LENGTH:
+        return None, "Please enter a valid amount."
     try:
         parsed_amount = Decimal(amount)
     except InvalidOperation:
@@ -69,26 +83,47 @@ def validate_expense(amount, category, expense_date, description):
         return None, "Amount must be greater than zero."
     if parsed_amount.as_tuple().exponent < -2:
         return None, "Amount can have at most 2 decimal places."
-    if parsed_amount > 10_000_000:
-        return None, "Amount must not exceed ₹1,00,00,000."
+    if parsed_amount > MAX_AMOUNT:
+        return None, f"Amount must not exceed {format_inr(MAX_AMOUNT)}."
 
     if category not in EXPENSE_CATEGORIES:
         return None, "Please choose a category."
 
     try:
-        datetime.strptime(expense_date, "%Y-%m-%d")
+        parsed_date = datetime.strptime(expense_date, "%Y-%m-%d").date()
     except ValueError:
         return None, "Please enter a valid date."
 
-    if len(description) > 200:
-        return None, "Description must be 200 characters or fewer."
+    if len(description) > MAX_DESCRIPTION_LENGTH:
+        return None, (f"Description must be {MAX_DESCRIPTION_LENGTH}"
+                      " characters or fewer.")
 
     return {
-        "amount": float(parsed_amount),
+        "amount": parsed_amount,
         "category": category,
-        "date": expense_date,
+        "expense_date": parsed_date.isoformat(),
         "description": description or None,
     }, None
+
+
+def get_csrf_token():
+    token = session.get("csrf_token")
+    if not token:
+        token = secrets.token_hex(16)
+        session["csrf_token"] = token
+    return token
+
+
+def csrf_token_is_valid():
+    expected = session.get("csrf_token", "")
+    submitted = request.form.get("csrf_token", "")
+    return bool(expected) and hmac.compare_digest(
+        submitted.encode(), expected.encode())
+
+
+@app.context_processor
+def inject_csrf_token():
+    return {"csrf_token": get_csrf_token}
 
 
 @app.template_filter("inr")
@@ -348,31 +383,28 @@ def add_expense():
     if user is None:
         return redirect(url_for("login"))
 
-    if request.method == "GET":
-        return render_template(
-            "add_expense.html",
-            categories=EXPENSE_CATEGORIES,
-            form={"date": date.today().isoformat()},
-        )
+    form = {"date": date.today().isoformat()}
+    error = None
+    if request.method == "POST":
+        if not csrf_token_is_valid():
+            abort(400)
+        form = {
+            key: request.form.get(key, "").strip()
+            for key in ("amount", "category", "date", "description")
+        }
+        cleaned, error = validate_expense(
+            form["amount"], form["category"], form["date"],
+            form["description"])
+        if error is None:
+            create_expense(user["id"], **cleaned)
+            return redirect(url_for("profile_transactions"))
 
-    form = {
-        "amount": request.form.get("amount", "").strip(),
-        "category": request.form.get("category", "").strip(),
-        "date": request.form.get("date", "").strip(),
-        "description": request.form.get("description", "").strip(),
-    }
-    cleaned, error = validate_expense(
-        form["amount"], form["category"], form["date"], form["description"])
-    if error:
-        return render_template(
-            "add_expense.html",
-            categories=EXPENSE_CATEGORIES,
-            form=form,
-            error=error,
-        )
-
-    create_expense(user["id"], **cleaned)
-    return redirect(url_for("profile_transactions"))
+    return render_template(
+        "add_expense.html",
+        categories=EXPENSE_CATEGORIES,
+        form=form,
+        error=error,
+    )
 
 
 # ------------------------------------------------------------------ #
