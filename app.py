@@ -299,6 +299,14 @@ def profile_categories():
 # <<< end Subagent 03 <<<
 
 
+@app.route("/analytics")
+def analytics():
+    user = get_current_user()
+    if user is None:
+        return redirect(url_for("login"))
+    return render_template("analytics.html", user=user)
+
+
 # ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
