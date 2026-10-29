@@ -13,7 +13,10 @@
 
         {% include "_profile_nav.html" %}
 
-        <h1 class="transactions-title">Transactions</h1>
+        <div class="transactions-header">
+            <h1 class="transactions-title">Transactions</h1>
+            <a href="{{ url_for('add_expense') }}" class="btn-primary">Add expense</a>
+        </div>
 
         {% include "_date_filter.html" %}
 

@@ -6,6 +6,11 @@ from werkzeug.security import generate_password_hash
 
 DB_PATH = Path(__file__).resolve().parent.parent / "expense_tracker.db"
 
+EXPENSE_CATEGORIES = [
+    "Food", "Transport", "Bills", "Health",
+    "Entertainment", "Shopping", "Other",
+]
+
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -164,6 +169,20 @@ def create_user(name, email, password):
         cursor = conn.execute(
             "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
             (name, email, generate_password_hash(password)),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def create_expense(user_id, amount, category, date, description):
+    conn = get_db()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO expenses (user_id, amount, category, date, description)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (user_id, round(float(amount), 2), category, date, description),
         )
         conn.commit()
         return cursor.lastrowid

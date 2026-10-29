@@ -78,7 +78,10 @@
             </div>
 
             <div class="profile-card">
-                <h2 class="profile-section-title">Recent expenses</h2>
+                <div class="profile-section-header">
+                    <h2 class="profile-section-title">Recent expenses</h2>
+                    <a href="{{ url_for('add_expense') }}" class="profile-section-link">+ Add expense</a>
+                </div>
                 <div class="expense-table-wrap">
                     <table class="expense-table">
                         <thead>
