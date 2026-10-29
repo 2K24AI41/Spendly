@@ -650,9 +650,10 @@ def test_edit_links_not_shown_for_other_users_expenses(client):
         assert edit_url(eid) not in html, f"{page} leaked foreign edit link"
 
 
-# ------------------------------------------------------------ stub boundary
+# ------------------------------------------------------- delete boundary
 
-def test_delete_stub_route_still_not_a_working_delete(client):
+def test_delete_route_get_does_not_delete(client):
     eid = logged_in_with_expense(client)
-    client.get(f"/expenses/{eid}/delete")
-    assert fetch_row(eid) is not None, "Delete (Step 9) must not be implemented"
+    resp = client.get(f"/expenses/{eid}/delete")
+    assert resp.status_code == 200
+    assert fetch_row(eid) is not None, "GET on the delete URL must not delete"
