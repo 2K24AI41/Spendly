@@ -14,6 +14,7 @@ spendly/
 │   └── db.py           # SQLite helpers: get_db(), init_db(), seed_db()
 ├── templates/
 │   ├── base.html       # Shared layout — all templates must extend this
+│   ├── error.html      # Shared error page (400/404/405/413/500)
 │   └── *.html          # One template per page
 ├── static/
 │   ├── css/
@@ -38,7 +39,7 @@ spendly/
 - Templates: Jinja2 with `url_for()` for every internal link — never hardcode URLs
 - Route functions: one responsibility only — fetch data, render template, done
 - DB queries: always use parameterized queries (`?` placeholders) — never f-strings in SQL
-- Error handling: use `abort()` for HTTP errors, not bare `return "error string"`
+- Error handling: use `abort()` for HTTP errors, not bare `return "error string"`. Errors 400/404/405/413/500 render `error.html` through the shared `render_error` handler in `app.py`; add new codes to `ERROR_PAGES`, and never show exception text to users
 
 ---
 

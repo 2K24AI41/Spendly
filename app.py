@@ -482,5 +482,55 @@ def delete_expense(expense_id):
     )
 
 
+ERROR_PAGES = {
+    400: ("Bad request",
+          "Something was wrong with that request. "
+          "Please go back and try again."),
+    404: ("Page not found",
+          "We could not find what you were looking for. "
+          "It may have moved or never existed."),
+    405: ("Method not allowed",
+          "That action is not available for this page."),
+    413: ("Request too large",
+          "What you sent was too large. Please shorten it and try again."),
+    500: ("Something went wrong",
+          "An unexpected error occurred on our side. "
+          "Please try again in a moment."),
+}
+
+
+def render_error(error):
+    code = getattr(error, "code", None)
+    if code not in ERROR_PAGES:
+        code = 500
+    title, message = ERROR_PAGES[code]
+
+    # Session only, no DB lookup: the fault may be DB-related.
+    try:
+        signed_in = bool(session.get("user_id"))
+    except Exception:
+        signed_in = False
+
+    if signed_in:
+        back_url = url_for("profile_transactions")
+        back_label = "Back to transactions"
+    else:
+        back_url = url_for("landing")
+        back_label = "Back to home"
+
+    return render_template(
+        "error.html",
+        code=code,
+        title=title,
+        message=message,
+        back_url=back_url,
+        back_label=back_label,
+    ), code
+
+
+for _code in ERROR_PAGES:
+    app.register_error_handler(_code, render_error)
+
+
 if __name__ == "__main__":
     app.run(debug=os.environ.get("FLASK_DEBUG", "1") == "1", port=5001)
