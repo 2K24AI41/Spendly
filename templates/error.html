@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}{{ code }} — {{ title }} — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/error.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-container error-container">
+        <div class="auth-header">
+            <p class="error-code">{{ code }}</p>
+            <h1 class="auth-title">{{ title }}</h1>
+            <p class="auth-subtitle">{{ message }}</p>
+        </div>
+        <div class="auth-card error-card">
+            <a href="{{ back_url }}" class="btn-primary">{{ back_label }}</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
