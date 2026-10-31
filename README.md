@@ -7,6 +7,8 @@ A personal expense tracking application built with **Flask** and **SQLite**. Use
 ![SQLite](https://img.shields.io/badge/SQLite-0B1A2E?style=flat-square&logo=sqlite&logoColor=38BDF8)
 ![pytest](https://img.shields.io/badge/pytest-0B1A2E?style=flat-square&logo=pytest&logoColor=38BDF8)
 
+**Live demo:** https://kumarkishor.pythonanywhere.com/
+
 ## Features
 
 - **Accounts:** registration, login and logout, with passwords hashed using Werkzeug
@@ -83,6 +85,16 @@ pytest
 ```
 
 Each test runs against its own temporary database.
+
+## Deployment
+
+The live site runs on PythonAnywhere's free tier from the `main` branch. To ship an update:
+
+1. Push to `main` on GitHub.
+2. In a PythonAnywhere Bash console: `cd ~/Spendly && git pull` (and `pip install -r requirements.txt` if dependencies changed).
+3. Click **Reload** on the Web tab.
+
+Free web apps must be extended every 3 months from the Web tab ("Run until 3 months from today").
 
 ## Development Approach
 
