@@ -1,5 +1,4 @@
 import re
-from datetime import date
 
 import pytest
 from flask.testing import FlaskClient
@@ -317,10 +316,12 @@ def test_sql_injection_in_description_stored_literally(client, expense_id):
 
 def test_edit_links_on_transactions_and_profile(client, expense_id):
     login(client)
-    # /profile only lists the 5 most recent expenses, so make this one recent.
+    # /profile only lists the 5 most recent expenses. Seed rows fall on days
+    # 1–20 of the current month, so "today" can still be older than five of
+    # them; a far-future date sorts first on any day.
     owner = fetch_expense(expense_id)["user_id"]
     db.update_expense(expense_id, owner, "250.00", "Food",
-                      date.today().isoformat(), MARKER)
+                      "2099-12-31", MARKER)
     link = f'href="{edit_url(expense_id)}"'
     assert link in client.get("/profile/transactions").get_data(as_text=True)
     assert link in client.get("/profile").get_data(as_text=True)
