@@ -322,3 +322,48 @@ def get_category_breakdown(user_id, date_from=None, date_to=None):
         ).fetchall()
     finally:
         conn.close()
+
+
+# ---- Analytics helpers ---- #
+
+def get_weekday_totals(user_id, date_from=None, date_to=None):
+    """Totals per weekday; weekday follows SQLite %w (0 = Sunday)."""
+    date_sql, date_params = _date_clause(date_from, date_to)
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT CAST(strftime('%w', date) AS INTEGER) AS weekday,"
+            " SUM(amount) AS total, COUNT(*) AS count"
+            " FROM expenses WHERE user_id = ?" + date_sql +
+            " GROUP BY weekday",
+            (user_id, *date_params),
+        ).fetchall()
+    finally:
+        conn.close()
+
+
+def get_top_expenses(user_id, date_from=None, date_to=None, limit=5):
+    date_sql, date_params = _date_clause(date_from, date_to)
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT id, amount, category, date, description FROM expenses"
+            " WHERE user_id = ?" + date_sql +
+            " ORDER BY amount DESC, date DESC, id DESC LIMIT ?",
+            (user_id, *date_params, limit),
+        ).fetchall()
+    finally:
+        conn.close()
+
+
+def get_first_expense_date(user_id):
+    """Earliest expense date as YYYY-MM-DD, or None if the user has none."""
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT MIN(date) AS first_date FROM expenses WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()
+        return row["first_date"]
+    finally:
+        conn.close()
