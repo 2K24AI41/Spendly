@@ -3,28 +3,147 @@
 {% block title %}Analytics — Spendly{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/summary.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}">
 {% endblock %}
 
 {% block content %}
-<section class="analytics">
-    <div class="analytics-card">
-        <div class="analytics-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
+<section class="profile analytics">
+    <div class="profile-inner">
+
+        <div class="analytics-header">
+            <h1 class="profile-name summary-title">Analytics</h1>
+            <p class="analytics-range">
+                {% if all_time %}
+                All time
+                {% else %}
+                {{ days }} day{{ "s" if days != 1 }} · {{ period_start | short_date }} – {{ period_end | short_date }}
+                {% endif %}
+            </p>
         </div>
-        <span class="analytics-badge">Coming Soon</span>
-        <h1 class="analytics-title">Advanced Analytics</h1>
-        <p class="analytics-text">
-            We're working on powerful insights and visualizations
-            to help you understand your spending patterns better.
-        </p>
-        <div class="analytics-dots" aria-hidden="true">
-            <span></span><span></span><span></span>
+
+        {% include "_date_filter.html" %}
+
+        <div class="profile-stats summary-stats">
+            <div class="profile-card stat-tile">
+                <span class="stat-label">Total spent</span>
+                <span class="stat-value">{{ stats.total | inr }}</span>
+                <span class="stat-note">{{ stats.count }} expense{{ "s" if stats.count != 1 }}</span>
+            </div>
+            <div class="profile-card stat-tile">
+                <span class="stat-label">Daily average</span>
+                <span class="stat-value">{{ daily_average | inr }}</span>
+                <span class="stat-note">over {{ days }} day{{ "s" if days != 1 }}</span>
+            </div>
+            {% if comparison %}
+            <div class="profile-card stat-tile">
+                <span class="stat-label">vs previous period</span>
+                <span class="stat-value">{{ comparison.sign }}{{ comparison.diff_abs | inr }}</span>
+                <span class="compare compare-{{ comparison.direction }}">{{ comparison.label }}</span>
+                <span class="stat-note compare-prev">
+                    Previous: {{ comparison.previous | inr }}
+                    ({{ comparison.prev_from | short_date }} – {{ comparison.prev_to | short_date }})
+                </span>
+            </div>
+            {% else %}
+            <div class="profile-card stat-tile">
+                <span class="stat-label">Expenses</span>
+                <span class="stat-value">{{ stats.count }}</span>
+                <span class="stat-note">across your whole history</span>
+            </div>
+            {% endif %}
+            <div class="profile-card stat-tile">
+                <span class="stat-label">Top category</span>
+                {% if top_category %}
+                <span class="stat-value">{{ top_category.category }}</span>
+                <span class="stat-note">{{ "%.1f" | format(top_category.share) }}% of spending</span>
+                <a href="{{ url_for('profile_categories', **{'from': range_from, 'to': range_to}) }}" class="profile-section-link">View categories →</a>
+                {% else %}
+                <span class="stat-value">—</span>
+                {% endif %}
+            </div>
         </div>
-        <p class="analytics-note">We're crafting something special</p>
+
+        {% if stats.count == 0 %}
+        <div class="profile-card profile-empty">
+            <span class="profile-empty-icon" aria-hidden="true">◈</span>
+            <h2 class="profile-section-title">No expenses in this period</h2>
+            <p>Try a wider date range, or clear the filter to see the last 30 days.</p>
+            <a href="{{ url_for('analytics') }}" class="btn-ghost">Clear filter</a>
+        </div>
+        {% else %}
+
+        <div class="profile-card">
+            <h2 class="profile-section-title">Monthly trend</h2>
+            <div class="trend-scroll" tabindex="0" role="region" aria-label="Monthly trend chart">
+                <ol class="trend-chart">
+                    {% for row in trend %}
+                    <li class="trend-col">
+                        <span class="trend-value">{{ row.total | inr }}</span>
+                        <span class="trend-track" aria-hidden="true">
+                            <span class="trend-bar" style="--bar: {{ row.bar }}%"></span>
+                        </span>
+                        <span class="trend-month">{{ row.month | month_label }}</span>
+                    </li>
+                    {% endfor %}
+                </ol>
+            </div>
+        </div>
+
+        <div class="profile-card">
+            <h2 class="profile-section-title">Day of week</h2>
+            {% if busiest %}
+            <p class="weekday-callout">
+                You spend the most on <strong>{{ busiest.name }}</strong>:
+                {{ busiest.total | inr }} across {{ busiest.count }} expense{{ "s" if busiest.count != 1 }}.
+            </p>
+            {% endif %}
+            <ul class="weekday-list">
+                {% for row in weekdays %}
+                <li class="weekday-row{% if busiest and row.name == busiest.name %} weekday-busiest{% endif %}">
+                    <span class="weekday-name">{{ row.name }}</span>
+                    <span class="weekday-track" aria-hidden="true">
+                        <span class="weekday-bar" style="--bar: {{ row.bar }}%"></span>
+                    </span>
+                    <span class="weekday-value">{{ row.total | inr }} · {{ row.count }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="profile-card">
+            <h2 class="profile-section-title">Top expenses</h2>
+            <div class="expense-table-wrap">
+                <table class="expense-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th class="amount">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in top_expenses %}
+                        {% set edit_label = "Edit expense: " ~ (expense.description or expense.category) ~ ", " ~ (expense.amount | inr) %}
+                        <tr>
+                            <td class="expense-date">{{ expense.date | short_date }}</td>
+                            <td>
+                                <a href="{{ url_for('edit_expense', expense_id=expense.id) }}" class="top-expense-link"
+                                   aria-label="{{ edit_label }}">{{ expense.description or "—" }}</a>
+                            </td>
+                            <td><span class="category-badge">{{ expense.category }}</span></td>
+                            <td class="amount">{{ expense.amount | inr }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% endif %}
+
     </div>
 </section>
 {% endblock %}

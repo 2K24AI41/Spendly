@@ -26,14 +26,15 @@ def test_analytics_missing_user_clears_session_and_redirects(client):
 
 # ---- Page ---- #
 
-def test_analytics_renders_coming_soon_when_signed_in(client):
+def test_analytics_renders_real_page_when_signed_in(client):
     login(client)
     resp = client.get("/analytics")
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
-    assert "Advanced Analytics" in html
-    assert "Coming Soon" in html
-    assert "We're crafting something special" in html
+    assert re.search(r"<h1[^>]*>\s*Analytics\s*</h1>", html)
+    assert "Daily average" in html
+    assert "Coming Soon" not in html
+    assert "We're crafting something special" not in html
 
 
 # ---- Navbar ---- #

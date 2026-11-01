@@ -104,6 +104,7 @@ pytest -s
 | `GET /profile/transactions` | Implemented — full expense history with `?from=&to=&category=` filters |
 | `GET /profile/summary` | Implemented — totals, average, highest expense and per-month table with `?from=&to=` |
 | `GET /profile/categories` | Implemented — per-category total, count, share and average with `?from=&to=` |
+| `GET /analytics` | Implemented — period comparison, daily average, monthly trend, weekday breakdown, top expenses with `?from=&to=` (defaults to last 30 days; `?from=&to=` blank = all time) |
 | `GET /expenses/add` | Implemented — renders `add_expense.html`; redirects to `/login` if signed out |
 | `POST /expenses/add` | Implemented — validates, creates the expense, redirects to `/profile/transactions` |
 | `GET /expenses/<id>/edit` | Implemented — renders `edit_expense.html` pre-filled; 404 if missing or not owned; redirects to `/login` if signed out |
